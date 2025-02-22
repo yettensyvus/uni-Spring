@@ -25,10 +25,10 @@ public class SmsApplication implements CommandLineRunner {
 
 		// Retrieve the beans and print their data
 		Profesor profesor_constr = profesor();
-		Profesor profesor_xml = (Profesor) context.getBean("profesor");
+		Profesor profesor_xml = (Profesor) context.getBean("profesor1");
 
 		Curs curs = curs();
-		Curs curs_xml = (Curs) context.getBean("curs");
+		Curs curs_xml = (Curs) context.getBean("curs1");
 
 		// Use setter injection
 		curs.setProfesor(profesor_constr);
@@ -38,6 +38,9 @@ public class SmsApplication implements CommandLineRunner {
 		System.out.println("Curs details (Setter Injection): " + curs);
 		System.out.println("Curs details (XML Injection): " + curs_xml);
 	}
+
+
+	// Constructor Injection
 
 	@Bean
 	public Profesor profesor() {

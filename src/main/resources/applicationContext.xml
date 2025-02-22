@@ -3,15 +3,15 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
        http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="profesor" class="com.yettensyvus.sms.Profesor">
+    <bean id="profesor1" class="com.yettensyvus.sms.Profesor">
         <constructor-arg value="Alex Straton"/>
         <constructor-arg value="Bio-Chimia"/>
         <constructor-arg value="5"/>
     </bean>
 
-    <bean id="curs" class="com.yettensyvus.sms.Curs">
+    <bean id="curs1" class="com.yettensyvus.sms.Curs">
         <constructor-arg value="Chimia"/>
         <constructor-arg value="2"/>
-        <constructor-arg ref="profesor"/>
+        <constructor-arg ref="profesor1"/>
     </bean>
 </beans>

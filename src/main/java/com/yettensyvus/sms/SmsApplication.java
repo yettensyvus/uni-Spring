@@ -17,7 +17,8 @@ import java.util.Arrays;
 import java.util.List;
 
 @SpringBootApplication
-public class SmsApplication implements CommandLineRunner {
+public class SmsApplication //implements CommandLineRunner
+{
 
 	private final ApplicationContext context;
 	private final StudentRepository studentRepository;
@@ -38,6 +39,7 @@ public class SmsApplication implements CommandLineRunner {
 		SpringApplication.run(SmsApplication.class, args);
 	}
 
+	/*
 	@Override
 	@Transactional // Ensure this method runs within a transaction
 	public void run(String... args) {
@@ -131,5 +133,5 @@ public class SmsApplication implements CommandLineRunner {
 			System.out.println("Profesor: " + c.getProfesor().getNume());
 			System.out.println("Students: " + c.getStudenti().stream().map(Student::getNume).toList());
 		});
-	}
+	}*/
 }

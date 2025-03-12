@@ -1,6 +1,8 @@
 package com.yettensyvus.sms.model;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,6 +13,7 @@ import java.util.List;
 @Table(name = "cursuri")
 @Data
 @NoArgsConstructor
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id") // Add this
 public class Curs {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,8 +24,7 @@ public class Curs {
 
     @ManyToOne
     @JoinColumn(name = "profesor_id", nullable = false)
-    @JsonManagedReference  // Prevent infinite recursion
-    private Profesor profesor;
+    private Profesor profesor; // Remove @JsonManagedReference
 
     @ManyToMany
     @JoinTable(
@@ -30,7 +32,7 @@ public class Curs {
             joinColumns = @JoinColumn(name = "curs_id"),
             inverseJoinColumns = @JoinColumn(name = "student_id")
     )
-    @JsonManagedReference  // Prevent infinite recursion
+    @JsonIgnore // Keep this to avoid circular reference with Student
     private List<Student> studenti;
 
     public Curs(String denumire, int credite, Profesor profesor, List<Student> studenti) {

@@ -1,6 +1,7 @@
 package com.yettensyvus.sms.controller;
 
 import com.yettensyvus.sms.model.Profesor;
+import com.yettensyvus.sms.model.Student;
 import com.yettensyvus.sms.service.ProfesorService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -1,50 +1,60 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-
-	<groupId>com.yettensyvus</groupId>
-	<artifactId>sms</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>sms</name>
-	<description>Student Management System</description>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.4.2</version>
-		<relativePath/>
+		<version>3.4.4</version>
+		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
+
+	<groupId>com.yettensyvus</groupId>
+	<artifactId>demo</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>demo</name>
+	<description>demo</description>
 
 	<properties>
 		<java.version>17</java.version>
-		<tomcat.version>10.1.36</tomcat.version>
 	</properties>
 
 	<dependencies>
+		<!-- Spring Boot Web Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
+		<!-- Spring Boot Data JPA Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
+		<!-- PostgreSQL Driver -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Lombok for boilerplate reduction -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
 
+		<!-- SLF4J for logging -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+
+		<!-- Spring Boot Test Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -54,24 +64,35 @@
 
 	<build>
 		<plugins>
+			<!-- Maven Compiler Plugin for Java 17 and Lombok -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+
+			<!-- Spring Boot Maven Plugin -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-					<jvmArguments>--add-opens=java.base/java.io=ALL-UNNAMED</jvmArguments>
-				</configuration>
-			</plugin>
-
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.13.0</version>
-				<configuration>
-					<source>${java.version}</source>
-					<target>${java.version}</target>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
 				</configuration>
 			</plugin>
 		</plugins>
 	</build>
-
 </project>

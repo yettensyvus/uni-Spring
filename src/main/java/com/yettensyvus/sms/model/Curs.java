@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,8 +14,10 @@ import java.util.List;
 @Entity
 @Table(name = "cursuri")
 @Data
+@Builder
 @NoArgsConstructor
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id") // Add this
+@AllArgsConstructor
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Curs {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +28,7 @@ public class Curs {
 
     @ManyToOne
     @JoinColumn(name = "profesor_id", nullable = false)
-    private Profesor profesor; // Remove @JsonManagedReference
+    private Profesor profesor;
 
     @ManyToMany
     @JoinTable(
@@ -35,10 +39,4 @@ public class Curs {
     @JsonIgnore // Keep this to avoid circular reference with Student
     private List<Student> studenti;
 
-    public Curs(String denumire, int credite, Profesor profesor, List<Student> studenti) {
-        this.denumire = denumire;
-        this.credite = credite;
-        this.profesor = profesor;
-        this.studenti = studenti;
-    }
 }

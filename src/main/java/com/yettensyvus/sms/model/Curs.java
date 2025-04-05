@@ -1,44 +1,37 @@
 package com.yettensyvus.sms.model;
 
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "cursuri")
 @Data
+@Builder
 @NoArgsConstructor
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id") // Add this
+@AllArgsConstructor
 public class Curs {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "curs_denumire", nullable = false)
     private String denumire;
+
+    @Column(name = "curs_credite", nullable = false)
     private int credite;
 
-    @ManyToOne
-    @JoinColumn(name = "profesor_id", nullable = false)
-    private Profesor profesor; // Remove @JsonManagedReference
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "profesor_id")
+    private Profesor profesor;
 
-    @ManyToMany
-    @JoinTable(
-            name = "student_curs",
-            joinColumns = @JoinColumn(name = "curs_id"),
-            inverseJoinColumns = @JoinColumn(name = "student_id")
-    )
-    @JsonIgnore // Keep this to avoid circular reference with Student
-    private List<Student> studenti;
+    @ManyToMany(mappedBy = "cursuri", fetch = FetchType.LAZY)
+    private List<Student> studenti = new ArrayList<>();
 
-    public Curs(String denumire, int credite, Profesor profesor, List<Student> studenti) {
-        this.denumire = denumire;
-        this.credite = credite;
-        this.profesor = profesor;
-        this.studenti = studenti;
-    }
 }

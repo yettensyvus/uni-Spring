@@ -1,6 +1,6 @@
 package com.yettensyvus.sms.controller;
 
-import com.yettensyvus.sms.model.Curs;
+import com.yettensyvus.sms.dto.CursDTO;
 import com.yettensyvus.sms.service.CursService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,38 +17,33 @@ public class CursController {
     }
 
     @GetMapping
-    public List<Curs> getAll() {
+    public List<CursDTO> getAll() {
         return cursService.findAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Curs> getById(@PathVariable Long id) {
+    public ResponseEntity<CursDTO> getById(@PathVariable Long id) {
         return cursService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public Curs create(@RequestBody Curs curs) {
-        return cursService.save(curs);
+    public ResponseEntity<CursDTO> create(@RequestBody CursDTO cursDTO) {
+        CursDTO savedCursDTO = cursService.save(cursDTO);
+        return ResponseEntity.ok(savedCursDTO);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Curs> update(@PathVariable Long id, @RequestBody Curs curs) {
-        return ResponseEntity.ok(cursService.update(id, curs));
+    public ResponseEntity<CursDTO> update(@PathVariable Long id, @RequestBody CursDTO cursDTO) {
+        CursDTO updatedCursDTO = cursService.update(id, cursDTO);
+        return ResponseEntity.ok(updatedCursDTO);
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<Curs> patch(@PathVariable Long id, @RequestBody Curs curs) {
-        return cursService.findById(id)
-                .map(existing -> {
-                    if (curs.getDenumire() != null) existing.setDenumire(curs.getDenumire());
-                    if (curs.getCredite() != 0) existing.setCredite(curs.getCredite());
-                    if (curs.getProfesor() != null) existing.setProfesor(curs.getProfesor());
-                    return cursService.save(existing);
-                })
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CursDTO> patch(@PathVariable Long id, @RequestBody CursDTO cursDTO) {
+        CursDTO patchedCursDTO = cursService.patch(id, cursDTO);
+        return ResponseEntity.ok(patchedCursDTO);
     }
 
     @DeleteMapping("/{id}")

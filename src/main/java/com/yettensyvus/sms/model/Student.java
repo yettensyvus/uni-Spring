@@ -1,46 +1,57 @@
 package com.yettensyvus.sms.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "studenti")
 @Data
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class Student {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long studentId;
+    private Long id;
 
+    @Column(name = "student_nume", nullable = false)
     private String nume;
+
+    @Column(name = "student_varsta", nullable = false)
     private int varsta;
+
+    @Column(name = "student_email", nullable = false)
     private String email;
+
+    @Column(name = "student_specialitate", nullable = false)
     private String specialitate;
+
+    @Column(name = "student_an_studiu", nullable = false)
     private int anStudiu;
+
+    @Column(name = "student_medie", nullable = false)
     private double medie;
+
+    @Column(name = "student_bursier", nullable = false)
     private boolean bursier;
 
-    @Column(name = "data_inscrierii")
+    @Column(name = "data_inscrierii", nullable = false)
     private LocalDate dataInscrierii;
 
-    @ManyToMany(mappedBy = "studenti")
-    @JsonBackReference  // Prevent infinite recursion
-    private List<Curs> cursuri;
+    @ManyToMany
+    @JoinTable(
+            name = "student_curs",
+            joinColumns = @JoinColumn(name = "student_id"),
+            inverseJoinColumns = @JoinColumn(name = "curs_id")
+    )
+    private List<Curs> cursuri = new ArrayList<>();
 
-    public Student(String nume, int varsta, String email, String specialitate,
-                   int anStudiu, double medie, boolean bursier, LocalDate dataInscrierii, List<Curs> cursuri) {
-        this.nume = nume;
-        this.varsta = varsta;
-        this.email = email;
-        this.specialitate = specialitate;
-        this.anStudiu = anStudiu;
-        this.medie = medie;
-        this.bursier = bursier;
-        this.dataInscrierii = dataInscrierii;
-        this.cursuri = cursuri;
-    }
 }

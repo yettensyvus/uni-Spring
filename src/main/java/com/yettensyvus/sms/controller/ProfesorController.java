@@ -1,7 +1,6 @@
 package com.yettensyvus.sms.controller;
 
-import com.yettensyvus.sms.model.Profesor;
-import com.yettensyvus.sms.model.Student;
+import com.yettensyvus.sms.dto.ProfesorDTO;
 import com.yettensyvus.sms.service.ProfesorService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,38 +17,33 @@ public class ProfesorController {
     }
 
     @GetMapping
-    public List<Profesor> getAll() {
+    public List<ProfesorDTO> getAllProfesori() {
         return profesorService.findAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Profesor> getById(@PathVariable Long id) {
+    public ResponseEntity<ProfesorDTO> getById(@PathVariable Long id) {
         return profesorService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public Profesor create(@RequestBody Profesor profesor) {
-        return profesorService.save(profesor);
+    public ResponseEntity<ProfesorDTO> create(@RequestBody ProfesorDTO profesorDTO) {
+        ProfesorDTO savedProfesorDTO = profesorService.save(profesorDTO);
+        return ResponseEntity.ok(savedProfesorDTO);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Profesor> update(@PathVariable Long id, @RequestBody Profesor profesor) {
-        return ResponseEntity.ok(profesorService.update(id, profesor));
+    public ResponseEntity<ProfesorDTO> update(@PathVariable Long id, @RequestBody ProfesorDTO profesorDTO) {
+        ProfesorDTO updatedProfesorDTO = profesorService.update(id, profesorDTO);
+        return ResponseEntity.ok(updatedProfesorDTO);
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<Profesor> patch(@PathVariable Long id, @RequestBody Profesor profesor) {
-        return profesorService.findById(id)
-                .map(existing -> {
-                    if (profesor.getNume() != null) existing.setNume(profesor.getNume());
-                    if (profesor.getMaterie() != null) existing.setMaterie(profesor.getMaterie());
-                    if (profesor.getExperientaAni() != 0) existing.setExperientaAni(profesor.getExperientaAni());
-                    return profesorService.save(existing);
-                })
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ProfesorDTO> patch(@PathVariable Long id, @RequestBody ProfesorDTO profesorDTO) {
+        ProfesorDTO patchedProfesorDTO = profesorService.patch(id, profesorDTO);
+        return ResponseEntity.ok(patchedProfesorDTO);
     }
 
     @DeleteMapping("/{id}")

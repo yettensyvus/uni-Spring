@@ -46,12 +46,7 @@ public class Student {
     @Column(name = "data_inscrierii", nullable = false)
     private LocalDate dataInscrierii;
 
-    @ManyToMany
-    @JoinTable(
-            name = "student_curs",
-            joinColumns = @JoinColumn(name = "student_id"),
-            inverseJoinColumns = @JoinColumn(name = "curs_id")
-    )
+    @ManyToMany(mappedBy = "studenti")
     private List<Curs> cursuri = new ArrayList<>();
 
 }

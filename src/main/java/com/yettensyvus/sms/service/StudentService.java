@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class StudentService {
+
     private final StudentRepository studentRepository;
     private final CursRepository cursRepository;
 
@@ -25,6 +26,7 @@ public class StudentService {
     }
 
     public List<StudentDTO> findAll() {
+        System.out.println("Fetching all students");
         return studentRepository.findAll()
                 .stream()
                 .map(EntityToDtoMapper::toStudentDTO)
@@ -32,138 +34,165 @@ public class StudentService {
     }
 
     public Optional<StudentDTO> findById(Long id) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID must be a positive number");
-        }
+        validateId(id);
+        System.out.println("Fetching student with ID: " + id);
         return studentRepository.findById(id)
                 .map(EntityToDtoMapper::toStudentDTO);
     }
 
     @Transactional
     public StudentDTO save(StudentDTO studentDTO) {
+        System.out.println("Saving new student with DTO: " + studentDTO);
         validateStudentDTO(studentDTO, false);
-        Student student = EntityToDtoMapper.toStudentEntity(studentDTO);
 
-        // Handle the cursuri relationship
-        if (studentDTO.getCursuriIds() != null && !studentDTO.getCursuriIds().isEmpty()) {
-            List<Curs> cursuri = cursRepository.findAllById(studentDTO.getCursuriIds());
-            if (cursuri.size() != studentDTO.getCursuriIds().size()) {
-                throw new IllegalArgumentException("One or more course IDs do not exist");
-            }
-            student.setCursuri(cursuri);
-            cursuri.forEach(curs -> curs.getStudenti().add(student));
-        }
+        Student student = EntityToDtoMapper.toStudentEntity(studentDTO);
+        handleCourseRelationships(student, studentDTO.getCursuriIds());
 
         Student savedStudent = studentRepository.save(student);
+        System.out.println("Saved student with ID: " + savedStudent.getId());
         return EntityToDtoMapper.toStudentDTO(savedStudent);
     }
 
     @Transactional
     public StudentDTO update(Long id, StudentDTO studentDTO) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID must be a positive number");
-        }
+        validateId(id);
         validateStudentDTO(studentDTO, true);
+
+        System.out.println("Updating student with ID: " + id);
         return studentRepository.findById(id)
                 .map(existing -> {
-                    existing.setNume(studentDTO.getNume());
-                    existing.setVarsta(studentDTO.getVarsta());
-                    existing.setEmail(studentDTO.getEmail());
-                    existing.setSpecialitate(studentDTO.getSpecialitate());
-                    existing.setAnStudiu(studentDTO.getAnStudiu());
-                    existing.setMedie(studentDTO.getMedie());
-                    existing.setBursier(studentDTO.isBursier());
-                    existing.setDataInscrierii(studentDTO.getDataInscrierii());
-
-                    if (studentDTO.getCursuriIds() != null) {
-                        List<Curs> cursuri = cursRepository.findAllById(studentDTO.getCursuriIds());
-                        if (cursuri.size() != studentDTO.getCursuriIds().size()) {
-                            throw new IllegalArgumentException("One or more course IDs do not exist");
-                        }
-                        // Clear existing relationships and update
-                        existing.getCursuri().forEach(curs -> curs.getStudenti().remove(existing));
-                        existing.getCursuri().clear();
-                        existing.setCursuri(cursuri);
-                        cursuri.forEach(curs -> curs.getStudenti().add(existing));
-                    }
+                    updateStudentFields(existing, studentDTO);
+                    handleCourseRelationships(existing, studentDTO.getCursuriIds());
 
                     Student updatedStudent = studentRepository.save(existing);
+                    System.out.println("Updated student with ID: " + updatedStudent.getId());
                     return EntityToDtoMapper.toStudentDTO(updatedStudent);
                 })
-                .orElseThrow(() -> new IllegalArgumentException("Student with ID " + id + " not found"));
+                .orElseThrow(() -> {
+                    System.out.println("Student with ID " + id + " not found");
+                    return new IllegalArgumentException("Student with ID " + id + " not found");
+                });
     }
 
     @Transactional
     public StudentDTO patch(Long id, StudentDTO studentDTO) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID must be a positive number");
-        }
+        validateId(id);
+        System.out.println("Patching student with ID: " + id);
+
         return studentRepository.findById(id)
                 .map(existing -> {
-                    if (studentDTO.getNume() != null) {
-                        validateField("nume", studentDTO.getNume());
-                        existing.setNume(studentDTO.getNume());
-                    }
-                    if (studentDTO.getVarsta() != 0) {
-                        validateVarsta(studentDTO.getVarsta());
-                        existing.setVarsta(studentDTO.getVarsta());
-                    }
-                    if (studentDTO.getEmail() != null) {
-                        validateEmail(studentDTO.getEmail());
-                        existing.setEmail(studentDTO.getEmail());
-                    }
-                    if (studentDTO.getSpecialitate() != null) {
-                        validateField("specialitate", studentDTO.getSpecialitate());
-                        existing.setSpecialitate(studentDTO.getSpecialitate());
-                    }
-                    if (studentDTO.getAnStudiu() != 0) {
-                        validateAnStudiu(studentDTO.getAnStudiu());
-                        existing.setAnStudiu(studentDTO.getAnStudiu());
-                    }
-                    if (studentDTO.getMedie() != 0.0) {
-                        validateMedie(studentDTO.getMedie());
-                        existing.setMedie(studentDTO.getMedie());
-                    }
-                    if (studentDTO.getDataInscrierii() != null) {
-                        validateDataInscrierii(studentDTO.getDataInscrierii());
-                        existing.setDataInscrierii(studentDTO.getDataInscrierii());
-                    }
-                    existing.setBursier(studentDTO.isBursier());
-
+                    patchStudentFields(existing, studentDTO);
                     if (studentDTO.getCursuriIds() != null) {
-                        List<Curs> cursuri = cursRepository.findAllById(studentDTO.getCursuriIds());
-                        if (cursuri.size() != studentDTO.getCursuriIds().size()) {
-                            throw new IllegalArgumentException("One or more course IDs do not exist");
-                        }
-                        existing.getCursuri().forEach(curs -> curs.getStudenti().remove(existing));
-                        existing.getCursuri().clear();
-                        existing.setCursuri(cursuri);
-                        cursuri.forEach(curs -> curs.getStudenti().add(existing));
+                        handleCourseRelationships(existing, studentDTO.getCursuriIds());
                     }
 
                     Student updatedStudent = studentRepository.save(existing);
+                    System.out.println("Patched student with ID: " + updatedStudent.getId());
                     return EntityToDtoMapper.toStudentDTO(updatedStudent);
                 })
-                .orElseThrow(() -> new IllegalArgumentException("Student with ID " + id + " not found"));
+                .orElseThrow(() -> {
+                    System.out.println("Student with ID " + id + " not found");
+                    return new IllegalArgumentException("Student with ID " + id + " not found");
+                });
     }
 
     @Transactional
     public void delete(Long id) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID must be a positive number");
-        }
+        validateId(id);
+        System.out.println("Deleting student with ID: " + id);
+
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Student with ID " + id + " not found"));
+                .orElseThrow(() -> {
+                    System.out.println("Student with ID " + id + " not found");
+                    return new IllegalArgumentException("Student with ID " + id + " not found");
+                });
+
         student.getCursuri().forEach(curs -> curs.getStudenti().remove(student));
         student.getCursuri().clear();
         studentRepository.deleteById(id);
+        System.out.println("Deleted student with ID: " + id);
     }
 
-    // Validation logic
+    // Helper methods
+    private void updateStudentFields(Student student, StudentDTO studentDTO) {
+        student.setNume(studentDTO.getNume());
+        student.setVarsta(studentDTO.getVarsta());
+        student.setEmail(studentDTO.getEmail());
+        student.setSpecialitate(studentDTO.getSpecialitate());
+        student.setAnStudiu(studentDTO.getAnStudiu());
+        student.setMedie(studentDTO.getMedie());
+        student.setBursier(studentDTO.isBursier());
+        student.setDataInscrierii(studentDTO.getDataInscrierii());
+    }
+
+    private void patchStudentFields(Student student, StudentDTO studentDTO) {
+        if (studentDTO.getNume() != null) {
+            validateField("nume", studentDTO.getNume());
+            student.setNume(studentDTO.getNume());
+        }
+        if (studentDTO.getVarsta() != 0) {
+            validateVarsta(studentDTO.getVarsta());
+            student.setVarsta(studentDTO.getVarsta());
+        }
+        if (studentDTO.getEmail() != null) {
+            validateEmail(studentDTO.getEmail());
+            student.setEmail(studentDTO.getEmail());
+        }
+        if (studentDTO.getSpecialitate() != null) {
+            validateField("specialitate", studentDTO.getSpecialitate());
+            student.setSpecialitate(studentDTO.getSpecialitate());
+        }
+        if (studentDTO.getAnStudiu() != 0) {
+            validateAnStudiu(studentDTO.getAnStudiu());
+            student.setAnStudiu(studentDTO.getAnStudiu());
+        }
+        if (studentDTO.getMedie() != 0.0) {
+            validateMedie(studentDTO.getMedie());
+            student.setMedie(studentDTO.getMedie());
+        }
+        if (studentDTO.getDataInscrierii() != null) {
+            validateDataInscrierii(studentDTO.getDataInscrierii());
+            student.setDataInscrierii(studentDTO.getDataInscrierii());
+        }
+        student.setBursier(studentDTO.isBursier());
+    }
+
+    private void handleCourseRelationships(Student student, List<Long> cursuriIds) {
+        if (cursuriIds != null && !cursuriIds.isEmpty()) {
+            System.out.println("Handling course relationships for student ID: " + student.getId());
+            List<Curs> cursuri = validateAndGetCourses(cursuriIds);
+
+            // Clear existing relationships
+            student.getCursuri().forEach(curs -> curs.getStudenti().remove(student));
+            student.getCursuri().clear();
+
+            // Set new relationships
+            student.setCursuri(cursuri);
+            cursuri.forEach(curs -> curs.getStudenti().add(student));
+        }
+    }
+
+    private List<Curs> validateAndGetCourses(List<Long> cursuriIds) {
+        List<Curs> cursuri = cursRepository.findAllById(cursuriIds);
+        if (cursuri.size() != cursuriIds.size()) {
+            System.out.println("One or more course IDs do not exist");
+            throw new IllegalArgumentException("One or more course IDs do not exist");
+        }
+        return cursuri;
+    }
+
+    // Validation methods
+    private void validateId(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("ID must be a positive number");
+        }
+    }
+
     private void validateStudentDTO(StudentDTO studentDTO, boolean isUpdate) {
         if (studentDTO == null) {
             throw new IllegalArgumentException("StudentDTO object cannot be null");
         }
+
         if (!isUpdate) {
             validateField("nume", studentDTO.getNume());
             validateVarsta(studentDTO.getVarsta());

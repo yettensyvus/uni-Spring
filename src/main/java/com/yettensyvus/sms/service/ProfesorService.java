@@ -18,6 +18,7 @@ public class ProfesorService {
     }
 
     public List<ProfesorDTO> findAll() {
+        System.out.println("Fetching all professors");
         return profesorRepository.findAll()
                 .stream()
                 .map(EntityToDtoMapper::toProfesorDTO)
@@ -25,42 +26,47 @@ public class ProfesorService {
     }
 
     public Optional<ProfesorDTO> findById(Long id) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID must be a positive number");
-        }
+        validateId(id);
+        System.out.println("Fetching professor with ID: " + id);
         return profesorRepository.findById(id)
                 .map(EntityToDtoMapper::toProfesorDTO);
     }
 
     public ProfesorDTO save(ProfesorDTO profesorDTO) {
-        validateProfesorDTO(profesorDTO, false); // false indicates new entity
+        System.out.println("Saving new professor with DTO: " + profesorDTO);
+        validateProfesorDTO(profesorDTO, false);
         Profesor profesor = EntityToDtoMapper.toProfesorEntity(profesorDTO);
         Profesor savedProfesor = profesorRepository.save(profesor);
+        System.out.println("Saved professor with ID: " + savedProfesor.getId());
         return EntityToDtoMapper.toProfesorDTO(savedProfesor);
     }
 
     public ProfesorDTO update(Long id, ProfesorDTO profesorDTO) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID must be a positive number");
-        }
-        validateProfesorDTO(profesorDTO, true); // true indicates update
+        validateId(id);
+        validateProfesorDTO(profesorDTO, true);
+
         return profesorRepository.findById(id)
                 .map(existing -> {
+                    System.out.println("Updating professor with ID: " + id);
                     existing.setNume(profesorDTO.getNume());
                     existing.setMaterie(profesorDTO.getMaterie());
                     existing.setExperientaAni(profesorDTO.getExperientaAni());
                     Profesor updatedProfesor = profesorRepository.save(existing);
+                    System.out.println("Updated professor with ID: " + updatedProfesor.getId());
                     return EntityToDtoMapper.toProfesorDTO(updatedProfesor);
                 })
-                .orElseThrow(() -> new IllegalArgumentException("Professor with ID " + id + " not found"));
+                .orElseThrow(() -> {
+                    System.out.println("Professor with ID " + id + " not found");
+                    return new IllegalArgumentException("Professor with ID " + id + " not found");
+                });
     }
 
     public ProfesorDTO patch(Long id, ProfesorDTO profesorDTO) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID must be a positive number");
-        }
+        validateId(id);
+
         return profesorRepository.findById(id)
                 .map(existing -> {
+                    System.out.println("Patching professor with ID: " + id);
                     if (profesorDTO.getNume() != null) {
                         validateField("nume", profesorDTO.getNume());
                         existing.setNume(profesorDTO.getNume());
@@ -74,31 +80,45 @@ public class ProfesorService {
                         existing.setExperientaAni(profesorDTO.getExperientaAni());
                     }
                     Profesor updatedProfesor = profesorRepository.save(existing);
+                    System.out.println("Patched professor with ID: " + updatedProfesor.getId());
                     return EntityToDtoMapper.toProfesorDTO(updatedProfesor);
                 })
-                .orElseThrow(() -> new IllegalArgumentException("Professor with ID " + id + " not found"));
+                .orElseThrow(() -> {
+                    System.out.println("Professor with ID " + id + " not found");
+                    return new IllegalArgumentException("Professor with ID " + id + " not found");
+                });
     }
 
     public void delete(Long id) {
+        validateId(id);
+        if (!profesorRepository.existsById(id)) {
+            System.out.println("Professor with ID " + id + " not found");
+            throw new IllegalArgumentException("Professor with ID " + id + " not found");
+        }
+        System.out.println("Deleting professor with ID: " + id);
+        profesorRepository.deleteById(id);
+        System.out.println("Deleted professor with ID: " + id);
+    }
+
+    // Validation methods
+    private void validateId(Long id) {
         if (id == null || id <= 0) {
             throw new IllegalArgumentException("ID must be a positive number");
         }
-        if (!profesorRepository.existsById(id)) {
-            throw new IllegalArgumentException("Professor with ID " + id + " not found");
-        }
-        profesorRepository.deleteById(id);
     }
 
-    // Validation logic
     private void validateProfesorDTO(ProfesorDTO profesorDTO, boolean isUpdate) {
         if (profesorDTO == null) {
             throw new IllegalArgumentException("ProfessorDTO object cannot be null");
         }
-        if (!isUpdate) { // For new entities, all fields might be required
+
+        if (!isUpdate) {
+            // For new entities, all fields are required
             validateField("nume", profesorDTO.getNume());
             validateField("materie", profesorDTO.getMaterie());
             validateExperientaAni(profesorDTO.getExperientaAni());
-        } else { // For updates, only validate non-null fields
+        } else {
+            // For updates, only validate fields that are present
             if (profesorDTO.getNume() != null) validateField("nume", profesorDTO.getNume());
             if (profesorDTO.getMaterie() != null) validateField("materie", profesorDTO.getMaterie());
             if (profesorDTO.getExperientaAni() != 0) validateExperientaAni(profesorDTO.getExperientaAni());

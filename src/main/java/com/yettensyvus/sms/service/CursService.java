@@ -7,8 +7,6 @@ import com.yettensyvus.sms.model.Student;
 import com.yettensyvus.sms.repository.CursRepository;
 import com.yettensyvus.sms.repository.ProfesorRepository;
 import com.yettensyvus.sms.repository.StudentRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,8 +16,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class CursService {
-    private static final Logger logger = LoggerFactory.getLogger(CursService.class);
-
     private final CursRepository cursRepository;
     private final StudentRepository studentRepository;
     private final ProfesorRepository profesorRepository;
@@ -31,6 +27,7 @@ public class CursService {
     }
 
     public List<CursDTO> findAll() {
+        System.out.println("Fetching all courses");
         return cursRepository.findAll()
                 .stream()
                 .map(EntityToDtoMapper::toCursDTO)
@@ -38,16 +35,15 @@ public class CursService {
     }
 
     public Optional<CursDTO> findById(Long id) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID must be a positive number");
-        }
+        validateId(id);
+        System.out.println("Fetching course with ID: " + id);
         return cursRepository.findById(id)
                 .map(EntityToDtoMapper::toCursDTO);
     }
 
     @Transactional
     public CursDTO save(CursDTO cursDTO) {
-        logger.info("Saving new course with DTO: {}", cursDTO);
+        System.out.println("Saving new course with DTO: " + cursDTO);
         validateCursDTO(cursDTO);
         Curs curs = new Curs();
         curs.setDenumire(cursDTO.getDenumire());
@@ -55,94 +51,66 @@ public class CursService {
 
         // Handle the profesor relationship
         if (cursDTO.getProfesorId() != null) {
-            logger.info("Fetching professor with ID: {}", cursDTO.getProfesorId());
-            Profesor profesor = profesorRepository.findById(cursDTO.getProfesorId())
-                    .orElseThrow(() -> {
-                        logger.error("Professor with ID {} not found", cursDTO.getProfesorId());
-                        return new IllegalArgumentException("Professor with ID " + cursDTO.getProfesorId() + " not found");
-                    });
-            logger.info("Professor found: {}", profesor);
+            System.out.println("Fetching professor with ID: " + cursDTO.getProfesorId());
+            Profesor profesor = getValidProfessor(cursDTO.getProfesorId());
             curs.setProfesor(profesor);
             profesor.getCursuri().add(curs);
-            logger.info("Set professor {} for course {}", profesor.getId(), curs.getDenumire());
+            System.out.println("Set professor " + profesor.getId() + " for course " + curs.getDenumire());
         } else {
-            logger.info("No professor ID provided, leaving profesor as null");
+            System.out.println("No professor ID provided, leaving profesor as null");
         }
 
         // Handle the studenti relationship
         if (cursDTO.getStudentiIds() != null && !cursDTO.getStudentiIds().isEmpty()) {
-            logger.info("Fetching students with IDs: {}", cursDTO.getStudentiIds());
-            List<Student> studenti = studentRepository.findAllById(cursDTO.getStudentiIds());
-            if (studenti.size() != cursDTO.getStudentiIds().size()) {
-                throw new IllegalArgumentException("One or more student IDs do not exist");
-            }
+            System.out.println("Fetching students with IDs: " + cursDTO.getStudentiIds());
+            List<Student> studenti = validateAndGetStudents(cursDTO.getStudentiIds());
             curs.setStudenti(studenti);
             studenti.forEach(student -> student.getCursuri().add(curs));
-            logger.info("Set {} students for course {}", studenti.size(), curs.getDenumire());
+            System.out.println("Set " + studenti.size() + " students for course " + curs.getDenumire());
         }
 
         Curs savedCurs = cursRepository.save(curs);
-        logger.info("Saved course with ID: {}", savedCurs.getId());
+        System.out.println("Saved course with ID: " + savedCurs.getId());
         return EntityToDtoMapper.toCursDTO(savedCurs);
     }
 
     @Transactional
     public CursDTO update(Long id, CursDTO cursDTO) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID must be a positive number");
-        }
+        validateId(id);
         validateCursDTO(cursDTO);
         return cursRepository.findById(id)
                 .map(existing -> {
-                    logger.info("Updating course with ID: {}", id);
+                    System.out.println("Updating course with ID: " + id);
                     existing.setDenumire(cursDTO.getDenumire());
                     existing.setCredite(cursDTO.getCredite());
 
                     // Update profesor relationship
-                    if (cursDTO.getProfesorId() != null) {
-                        logger.info("Fetching professor with ID: {}", cursDTO.getProfesorId());
-                        Profesor newProfesor = profesorRepository.findById(cursDTO.getProfesorId())
-                                .orElseThrow(() -> new IllegalArgumentException("Professor with ID " + cursDTO.getProfesorId() + " not found"));
-                        if (existing.getProfesor() != null && !existing.getProfesor().getId().equals(cursDTO.getProfesorId())) {
-                            existing.getProfesor().getCursuri().remove(existing);
-                        }
-                        existing.setProfesor(newProfesor);
-                        newProfesor.getCursuri().add(existing);
-                        logger.info("Updated professor to ID: {}", newProfesor.getId());
-                    } else if (cursDTO.getProfesorId() == null && existing.getProfesor() != null) {
-                        existing.getProfesor().getCursuri().remove(existing);
-                        existing.setProfesor(null);
-                        logger.info("Removed professor from course");
-                    }
+                    updateProfessorRelationship(existing, cursDTO.getProfesorId());
 
                     // Update studenti relationship
                     if (cursDTO.getStudentiIds() != null) {
-                        List<Student> studenti = studentRepository.findAllById(cursDTO.getStudentiIds());
-                        if (studenti.size() != cursDTO.getStudentiIds().size()) {
-                            throw new IllegalArgumentException("One or more student IDs do not exist");
-                        }
-                        existing.getStudenti().forEach(student -> student.getCursuri().remove(existing));
-                        existing.getStudenti().clear();
-                        existing.setStudenti(studenti);
-                        studenti.forEach(student -> student.getCursuri().add(existing));
+                        List<Student> studenti = validateAndGetStudents(cursDTO.getStudentiIds());
+                        updateStudentRelationship(existing, studenti);
                     }
 
                     Curs updatedCurs = cursRepository.save(existing);
-                    logger.info("Updated course with ID: {}", updatedCurs.getId());
+                    System.out.println("Updated course with ID: " + updatedCurs.getId());
                     return EntityToDtoMapper.toCursDTO(updatedCurs);
                 })
-                .orElseThrow(() -> new IllegalArgumentException("Curs with ID " + id + " not found"));
+                .orElseThrow(() -> {
+                    System.out.println("Course with ID " + id + " not found");
+                    return new IllegalArgumentException("Curs with ID " + id + " not found");
+                });
     }
 
     @Transactional
     public CursDTO patch(Long id, CursDTO cursDTO) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID must be a positive number");
-        }
+        validateId(id);
         return cursRepository.findById(id)
                 .map(existing -> {
+                    System.out.println("Patching course with ID: " + id);
                     if (cursDTO.getDenumire() != null) {
-                        validateField("denumire", cursDTO.getDenumire());
+                        validateDenumire(cursDTO.getDenumire());
                         existing.setDenumire(cursDTO.getDenumire());
                     }
                     if (cursDTO.getCredite() != 0) {
@@ -150,63 +118,62 @@ public class CursService {
                         existing.setCredite(cursDTO.getCredite());
                     }
                     if (cursDTO.getProfesorId() != null) {
-                        logger.info("Patching professor with ID: {}", cursDTO.getProfesorId());
-                        Profesor newProfesor = profesorRepository.findById(cursDTO.getProfesorId())
-                                .orElseThrow(() -> new IllegalArgumentException("Professor with ID " + cursDTO.getProfesorId() + " not found"));
-                        if (existing.getProfesor() != null && !existing.getProfesor().getId().equals(cursDTO.getProfesorId())) {
-                            existing.getProfesor().getCursuri().remove(existing);
-                        }
-                        existing.setProfesor(newProfesor);
-                        newProfesor.getCursuri().add(existing);
-                        logger.info("Patched professor to ID: {}", newProfesor.getId());
+                        updateProfessorRelationship(existing, cursDTO.getProfesorId());
                     }
                     if (cursDTO.getStudentiIds() != null) {
-                        List<Student> studenti = studentRepository.findAllById(cursDTO.getStudentiIds());
-                        if (studenti.size() != cursDTO.getStudentiIds().size()) {
-                            throw new IllegalArgumentException("One or more student IDs do not exist");
-                        }
-                        existing.getStudenti().forEach(student -> student.getCursuri().remove(existing));
-                        existing.getStudenti().clear();
-                        existing.setStudenti(studenti);
-                        studenti.forEach(student -> student.getCursuri().add(existing));
+                        List<Student> studenti = validateAndGetStudents(cursDTO.getStudentiIds());
+                        updateStudentRelationship(existing, studenti);
                     }
 
                     Curs updatedCurs = cursRepository.save(existing);
+                    System.out.println("Patched course with ID: " + updatedCurs.getId());
                     return EntityToDtoMapper.toCursDTO(updatedCurs);
                 })
-                .orElseThrow(() -> new IllegalArgumentException("Curs with ID " + id + " not found"));
+                .orElseThrow(() -> {
+                    System.out.println("Course with ID " + id + " not found");
+                    return new IllegalArgumentException("Curs with ID " + id + " not found");
+                });
     }
 
     @Transactional
     public void delete(Long id) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID must be a positive number");
-        }
+        validateId(id);
+        System.out.println("Deleting course with ID: " + id);
         Curs curs = cursRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Curs with ID " + id + " not found"));
+                .orElseThrow(() -> {
+                    System.out.println("Course with ID " + id + " not found");
+                    return new IllegalArgumentException("Curs with ID " + id + " not found");
+                });
         if (curs.getProfesor() != null) {
             curs.getProfesor().getCursuri().remove(curs);
         }
         curs.getStudenti().forEach(student -> student.getCursuri().remove(curs));
         curs.getStudenti().clear();
         cursRepository.deleteById(id);
+        System.out.println("Deleted course with ID: " + id);
     }
 
-    // Validation Methods
+    // Validation and Helper Methods
+    private void validateId(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("ID must be a positive number");
+        }
+    }
+
     private void validateCursDTO(CursDTO cursDTO) {
         if (cursDTO == null) {
             throw new IllegalArgumentException("CursDTO object cannot be null");
         }
-        validateField("denumire", cursDTO.getDenumire());
+        validateDenumire(cursDTO.getDenumire());
         validateCredite(cursDTO.getCredite());
     }
 
-    private void validateField(String fieldName, String value) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + " cannot be null or empty");
+    private void validateDenumire(String denumire) {
+        if (denumire == null || denumire.trim().isEmpty()) {
+            throw new IllegalArgumentException("denumire cannot be null or empty");
         }
-        if (value.length() > 100) {
-            throw new IllegalArgumentException(fieldName + " cannot exceed 100 characters");
+        if (denumire.length() > 100) {
+            throw new IllegalArgumentException("denumire cannot exceed 100 characters");
         }
     }
 
@@ -217,5 +184,46 @@ public class CursService {
         if (credite > 20) {
             throw new IllegalArgumentException("Credite cannot exceed 20");
         }
+    }
+
+    private Profesor getValidProfessor(Long profesorId) {
+        return profesorRepository.findById(profesorId)
+                .orElseThrow(() -> {
+                    System.out.println("Professor with ID " + profesorId + " not found");
+                    return new IllegalArgumentException("Professor with ID " + profesorId + " not found");
+                });
+    }
+
+    private List<Student> validateAndGetStudents(List<Long> studentiIds) {
+        List<Student> studenti = studentRepository.findAllById(studentiIds);
+        if (studenti.size() != studentiIds.size()) {
+            System.out.println("One or more student IDs do not exist");
+            throw new IllegalArgumentException("One or more student IDs do not exist");
+        }
+        return studenti;
+    }
+
+    private void updateProfessorRelationship(Curs existing, Long newProfesorId) {
+        if (newProfesorId != null) {
+            System.out.println("Fetching professor with ID: " + newProfesorId);
+            Profesor newProfesor = getValidProfessor(newProfesorId);
+            if (existing.getProfesor() != null && !existing.getProfesor().getId().equals(newProfesorId)) {
+                existing.getProfesor().getCursuri().remove(existing);
+            }
+            existing.setProfesor(newProfesor);
+            newProfesor.getCursuri().add(existing);
+            System.out.println("Updated professor to ID: " + newProfesor.getId());
+        } else if (newProfesorId == null && existing.getProfesor() != null) {
+            existing.getProfesor().getCursuri().remove(existing);
+            existing.setProfesor(null);
+            System.out.println("Removed professor from course");
+        }
+    }
+
+    private void updateStudentRelationship(Curs existing, List<Student> studenti) {
+        existing.getStudenti().forEach(student -> student.getCursuri().remove(existing));
+        existing.getStudenti().clear();
+        existing.setStudenti(studenti);
+        studenti.forEach(student -> student.getCursuri().add(existing));
     }
 }
